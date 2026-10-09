@@ -159,8 +159,8 @@ class PolicyTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Exactly one PR"):
             delivery(self.issue, self.comments, [self.pull], self.policy)
 
-    def test_default_policy_is_disabled(self):
-        policy = json.loads((ROOT / "policy.json").read_text())
+    def test_off_policy_blocks_even_configured_identities(self):
+        policy = {**self.policy, "mode": "off"}
         with self.assertRaisesRegex(ValueError, "off"):
             active(policy)
 

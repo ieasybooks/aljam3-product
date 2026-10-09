@@ -197,7 +197,7 @@ class Product:
             require(any(c["context"] == self.policy["delivery_context"] and c.get("app_id") == self.policy["gate"]["app_id"] for c in checks),
                     "Required delivery status must belong to the dedicated GitHub App")
             require(protection.get("enforce_admins", {}).get("enabled"), "Admin bypass must be disabled")
-            require(protection.get("required_pull_request_reviews", {}).get("require_code_owner_reviews"), "Code owner review must be enforced")
+            require((protection.get("required_pull_request_reviews") or {}).get("require_code_owner_reviews"), "Code owner review must be enforced")
             require(all(any(c["context"] == name and c.get("app_id") == 15368 for c in checks)
                         for name in self.policy["repositories"][p["repository"]]["checks"]), "Required CI protection is incomplete")
         return issue, comments, pulls, bundle

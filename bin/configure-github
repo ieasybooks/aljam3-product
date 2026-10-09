@@ -28,9 +28,15 @@ for name, color in labels.items():
     if name not in existing:
         api.request(f"repos/{policy['product_repo']}/labels", "POST", {"name": name, "color": color})
 
-repos = [policy["product_repo"], *policy["repositories"]]
+repos = [*policy["repositories"], policy["product_repo"]]
 for repo in repos:
     is_product = repo == policy["product_repo"]
+    branch = api.request(f"repos/{repo}/branches/main")
+    if branch["protected"] and args.phase == "bootstrap":
+        current = api.request(f"repos/{repo}/branches/main/protection")
+        current_checks = (current.get("required_status_checks") or {}).get("checks", [])
+        require(not any(c["context"] == policy["delivery_context"] for c in current_checks),
+                "Refusing to downgrade an installed delivery gate to bootstrap")
     checks = [{"context": "test" if is_product else "Aljam3 / CI", "app_id": 15368}]
     if not is_product and args.phase == "delivery":
         checks.append({"context": policy["delivery_context"], "app_id": policy["gate"]["app_id"]})
