@@ -2,10 +2,10 @@ import copy
 import json
 from pathlib import Path
 import unittest
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 from automation.cli import Product
-from automation.policy import render_record, revision
+from automation.policy import bundle_id, render_record, revision
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -84,6 +84,44 @@ class DeliveryTest(unittest.TestCase):
             {"display_title": "Aljam3 delivery unique-permit"}, {"display_title": "Aljam3 delivery unique-permit"}]}
         with self.assertRaisesRegex(ValueError, "Ambiguous"):
             self.product.release_run(permit)
+
+    @patch("automation.cli.active")
+    def test_finish_replay_does_not_clear_a_new_proposals_reservation(self, _):
+        self.issue["state"] = "closed"
+        completed = {"type": "released", "revision": revision(self.issue), "evidence": ["https://github.com/run"]}
+        comment = {"id": 1, "user": {"login": "gate[bot]"}, "created_at": "now", "updated_at": "now", "body": render_record(completed)}
+        self.product.issue = Mock(return_value=(self.issue, [comment]))
+        self.product.lock = Mock(return_value={"issue": 2, "revision": "new", "sha": "new-lock"})
+        self.product.release_lock = Mock()
+        self.assertTrue(self.product.finish(1)["already_recorded"])
+        self.product.release_lock.assert_not_called()
+        self.product.api.request.assert_not_called()
+
+    @patch("automation.cli.active")
+    def test_finish_recovers_if_interrupted_after_the_release_record(self, _):
+        self.issue["state"] = "open"
+        completed = {"type": "released", "revision": revision(self.issue), "evidence": ["https://github.com/run"]}
+        comment = {"id": 1, "user": {"login": "gate[bot]"}, "created_at": "now", "updated_at": "now", "body": render_record(completed)}
+        self.product.path = "repos/ieasybooks/aljam3-product"
+        self.product.issue = Mock(return_value=(self.issue, [comment]))
+        self.product.lock = Mock(return_value={"issue": 1, "revision": revision(self.issue), "sha": "owned-lock"})
+        self.product.release_lock = Mock()
+        self.assertTrue(self.product.finish(1)["released"])
+        self.product.release_lock.assert_called_once_with("active", "owned-lock")
+        self.assertEqual(self.product.api.request.call_args.args[1], "PATCH")
+
+    @patch("automation.cli.active")
+    @patch("automation.cli.approved")
+    def test_cpo_feedback_uses_the_same_bounded_repair_budget(self, *_):
+        self.product.policy["worker"] = {"login": "worker", "id": 123}
+        failed = {"type": "review", "role": "cpo", "verdict": "fail", "revision": revision(self.issue)}
+        comments = [{"id": n, "user": {"login": "worker"}, "created_at": "now", "updated_at": "now", "body": render_record(failed)} for n in range(4)]
+        self.product.snapshot = Mock(return_value=(self.issue, comments, []))
+        self.product.worker = Mock()
+        record = {"type": "review", "role": "cto", "bundle": bundle_id(revision(self.issue), [])}
+        with self.assertRaisesRegex(ValueError, "Repair budget exhausted"):
+            self.product.record(1, record)
+        self.product.post.assert_not_called()
 
 
 if __name__ == "__main__":

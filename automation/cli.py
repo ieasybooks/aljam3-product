@@ -184,7 +184,7 @@ class Product:
         require(record.get("type") == "review" and record.get("role") in ("cto", "qa", "cpo", "ceo"), "Only role reviews may be recorded")
         require(record.get("bundle") == bundle_id(revision(issue), pulls), "Review is for a stale bundle")
         failures = [r for _, r in records(comments, self.policy["worker"]["login"])
-                    if r.get("type") == "review" and r.get("role") == "qa" and r.get("verdict") == "fail"
+                    if r.get("type") == "review" and r.get("role") in ("cto", "qa", "cpo", "ceo") and r.get("verdict") == "fail"
                     and r.get("revision") == revision(issue)]
         require(len(failures) <= self.policy["limits"]["repair_rounds"], "Repair budget exhausted; escalate to the owner")
         self.post(number, {**record, "revision": revision(issue)})
@@ -323,6 +323,15 @@ class Product:
     def finish(self, number):
         issue, comments = self.issue(number)
         active(self.policy, number, live=True)
+        completed = [r for _, r in records(comments, self.policy["gate"]["login"])
+                     if r.get("type") == "released" and r.get("revision") == revision(issue)]
+        if completed:
+            if issue["state"] != "closed":
+                self.api.request(f"{self.path}/issues/{number}", "PATCH", {"state": "closed", "state_reason": "completed"})
+            lock = self.lock("active")
+            if lock and lock["issue"] == number and lock["revision"] == revision(issue):
+                self.release_lock("active", lock["sha"])
+            return {"released": True, "already_recorded": True, "evidence": completed[-1]["evidence"]}
         permits = [r for _, r in records(comments, self.policy["gate"]["login"])
                    if r.get("type") == "release-requested" and r.get("revision") == revision(issue)]
         require(len(permits) == len(metadata(issue, self.policy)["repositories"]), "Missing or ambiguous release requests")

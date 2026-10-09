@@ -50,7 +50,7 @@ Each role produces `templates/review.json`, retaining its actual T3 task ID and 
 python3 bin/productctl record --issue 123 --file /path/to/review.json
 ```
 
-The sequence is CTO evidence, QA pass, CPO acceptance, CEO pass. Failed QA records must also be posted with `verdict: fail`; they consume the repair budget. There are at most three repairs after the first implementation. Any unresolved finding blocks final approval; explicitly resolve or dismiss it with evidence. New scope returns to the owner. Each review round is a new `delegate_task` call with the original brief and prior findings; don't reopen the old child as a new review round.
+The sequence is CTO evidence, QA pass, CPO acceptance, CEO pass. Failed role results must also be posted with `verdict: fail`; CTO/QA/CPO/CEO failures share the repair budget. There are at most three repairs after the first implementation. Any unresolved finding blocks final approval; explicitly resolve or dismiss it with evidence. New scope returns to the owner. Each review round is a new `delegate_task` call with the original brief and prior findings; don't reopen the old child as a new review round.
 
 ## Delivery
 
