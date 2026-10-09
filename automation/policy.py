@@ -51,17 +51,18 @@ def human_command(comments, policy, command, value):
     for comment in comments:
         if comment["user"]["id"] != policy["owner"]["id"]:
             continue
-        if comment["created_at"] != comment["updated_at"]:
-            continue
         line = (comment.get("body") or "").split("\n")[0].strip()
         match = re.fullmatch(r"/aljam3 (approve|changes|reject|pause|delivery) ([0-9a-f]{64})", line)
         if match and match[2] == value:
-            commands.append((comment["id"], match[1]))
+            decision = match[1]
+            if comment["created_at"] != comment["updated_at"]:
+                decision = "pause"
+            commands.append((comment["updated_at"], comment["id"], decision))
     if command == "delivery":
-        commands = [c for c in commands if c[1] in ("delivery", "pause", "reject", "changes")]
+        commands = [c for c in commands if c[2] in ("delivery", "pause", "reject", "changes")]
     else:
-        commands = [c for c in commands if c[1] != "delivery"]
-    return bool(commands) and max(commands)[1] == command
+        commands = [c for c in commands if c[2] != "delivery"]
+    return bool(commands) and max(commands)[2] == command
 
 
 def records(comments, login):

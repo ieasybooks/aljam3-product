@@ -12,7 +12,7 @@ python3 bin/productctl propose --title 'Proposal title' --body-file proposals/ex
 
 `propose` is enabled only in live mode, checks both caps inside an atomic GitHub reservation, and posts the approval command. It counts closed proposals unless they have an authenticated rejection or completed release record. Labels aid navigation; they are not approvals or terminal authority. Do not fill all slots merely because they are available. In pilot mode the owner creates exactly one small proposal from the template; autonomous research remains paused.
 
-The owner posts a new, unedited comment whose first line is `/aljam3 approve <revision>`. To request edits, reject, or pause, use `/aljam3 changes <revision>`, `/aljam3 reject <revision>`, or `/aljam3 pause <revision>`. Commands must be written by GitHub user ID `7662492` (`AliOsm`). Quoted commands, labels, bot comments, edited approvals, and webhook sender claims do not authorize work. A new body/title needs a new approval. To reverse a command, post another comment; the latest applicable command wins.
+The owner posts a new, unedited comment whose first line is `/aljam3 approve <revision>`. To request edits, reject, or pause, use `/aljam3 changes <revision>`, `/aljam3 reject <revision>`, or `/aljam3 pause <revision>`. Commands must be written by GitHub user ID `7662492` (`AliOsm`). Quoted commands, labels, bot comments, edited approvals, and webhook sender claims do not authorize work. Editing an approval pauses that revision; editing a denial does not restore an older approval. A new body/title needs a new approval. To reverse a command, post another comment; the latest applicable command wins. Preserve command comments as the audit trail rather than deleting them.
 
 ## Claim and implement
 
@@ -21,6 +21,8 @@ python3 bin/productctl claim --issue 123 --thread COORDINATOR_THREAD_ID
 ```
 
 Only one `automation/active` GitHub ref can exist. Creating it is atomic. Its commit message records the issue, proposal revision, and owning T3 thread. A duplicate wake-up routes to that thread instead of starting another CTO. A failed/abandoned worker keeps the reservation until the owner inspects the T3 tasks and explicitly recovers it. Rejection does not silently cancel a live process; the coordinator cancels children, stops PR watches, confirms all work has stopped, and then the owner clears the reservation.
+
+After scope edits, the same coordinator must stop old child work, obtain the owner's new approval, and call `claim` again. It advances the existing reservation to the approved revision with a fast-forward-only GitHub ref update. A different thread cannot take ownership this way.
 
 The CTO gets the complete approved issue, repository `AGENTS.md`, exact base commits, explicit isolated workspace paths, rollout order and line budget. For a cross-app change preserve the public web API for installed desktop clients; normally deploy a backward-compatible server first. Never require simultaneous deployments for correctness.
 

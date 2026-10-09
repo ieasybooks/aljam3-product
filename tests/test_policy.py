@@ -62,6 +62,20 @@ class PolicyTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             approved(self.issue, self.comments, self.policy)
 
+    def test_editing_a_change_request_does_not_restore_an_older_approval(self):
+        request = self.comment(9, f"/aljam3 changes {revision(self.issue)}")
+        request["updated_at"] = "2026-10-09T11:00:00Z"
+        self.comments.append(request)
+        with self.assertRaises(ValueError):
+            approved(self.issue, self.comments, self.policy)
+
+    def test_edited_new_approval_does_not_fall_back_to_an_older_approval(self):
+        approval = self.comment(9, f"/aljam3 approve {revision(self.issue)}")
+        approval["updated_at"] = "2026-10-09T11:00:00Z"
+        self.comments.append(approval)
+        with self.assertRaises(ValueError):
+            approved(self.issue, self.comments, self.policy)
+
     def test_new_owner_comment_can_reapprove(self):
         self.comments.extend([self.comment(9, f"/aljam3 changes {revision(self.issue)}"),
                               self.comment(10, f"/aljam3 approve {revision(self.issue)}")])

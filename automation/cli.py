@@ -113,8 +113,14 @@ class Product:
         value = {"issue": number, "revision": revision(issue), "thread": thread}
         existing = self.lock("active")
         if existing:
-            require(all(existing.get(k) == v for k, v in value.items()),
+            require(existing.get("issue") == number and existing.get("thread") == thread,
                     f"Work is already owned by T3 thread {existing.get('thread')}; route the wake-up there")
+            if existing["revision"] != value["revision"]:
+                tree = self.api.request(f"{self.path}/git/commits/{existing['sha']}")["tree"]["sha"]
+                commit = self.api.request(f"{self.path}/git/commits", "POST", {
+                    "tree": tree, "parents": [existing["sha"]], "message": json.dumps(value)})
+                self.api.request(f"{self.path}/git/refs/heads/automation/active", "PATCH", {"sha": commit["sha"], "force": False})
+                return {**value, "sha": commit["sha"]}
             return existing
         return {**value, "sha": self.acquire("active", value)}
 

@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 from automation.cli import Product
 from automation.github import GitHub
@@ -35,6 +35,24 @@ class GitHubTest(unittest.TestCase):
                                            {"sha": "commit"}, ValueError("ref already exists")]
         with self.assertRaisesRegex(ValueError, "already exists"):
             product.acquire("active", {"thread": "second-thread"})
+
+    @patch("automation.cli.capacity")
+    @patch("automation.cli.approved")
+    @patch("automation.cli.active")
+    @patch("automation.cli.terminal", return_value=False)
+    def test_same_coordinator_can_advance_a_newly_approved_revision(self, *_):
+        product = Product.__new__(Product)
+        product.path = "repos/example/product"
+        product.policy = {}
+        product.worker = Mock()
+        product.issue = Mock(return_value=({"number": 1, "title": "Updated approved scope", "body": "new"}, []))
+        product.all_proposals = Mock(return_value=([], {}))
+        product.lock = Mock(return_value={"issue": 1, "thread": "coordinator-thread", "revision": "old", "sha": "old-ref"})
+        product.api = Mock()
+        product.api.request.side_effect = [{"tree": {"sha": "tree"}}, {"sha": "new-ref"}, {}]
+        result = product.claim(1, "coordinator-thread")
+        self.assertEqual(result["sha"], "new-ref")
+        self.assertEqual(product.api.request.call_args.args, ("repos/example/product/git/refs/heads/automation/active", "PATCH", {"sha": "new-ref", "force": False}))
 
 
 if __name__ == "__main__":

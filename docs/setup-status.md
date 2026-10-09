@@ -12,7 +12,7 @@ Both PRs are open for review. The application workflows pin the release-authorit
 
 ## Verified setup
 
-- 38 policy/helper tests pass, including quota categories, spoofed/edited/revoked approvals, changed code/base, independent task records, failing CI, duplicate reservations and release dispatch recovery. The product CI also passed.
+- 41 policy/helper tests pass, including quota categories, spoofed/edited/revoked approvals, changed code/base, independent task records, failing CI, duplicate reservations, renewed scope approval and release dispatch recovery. The initial product CI also passed; the final helper revision is checked by its own CI run.
 - Web: 515 examples pass, 100% line and branch coverage, plus Brakeman, RuboCop, Prettier, i18n health, Active Record Doctor and asset builds. The full local agent check and [hosted CI](https://github.com/ieasybooks/aljam3-web-app/actions/runs/37968265127) passed. Disposable service setup and repeated cleanup were exercised.
 - Desktop: 285 tests and 5,529 assertions pass locally. A native screenshot was captured and inspected using `bin/peek`. Workflow/ShellCheck validation and Ruby/Python syntax checks pass. Agent publication rejects missing versioned release notes before any release action. [Hosted macOS/Windows CI](https://github.com/ieasybooks/aljam3-desktop/actions/runs/37968281983) was still running at this checkpoint; check its completed result before the pilot.
 - Both app branches require strict `Aljam3 / CI` from GitHub Actions (App ID 15368), disable admin bypass, disallow force-push/deletion and require conversation resolution. The final App-bound delivery status and CODEOWNERS review are intentionally installed after bootstrap/identity setup, not claimed active now.
