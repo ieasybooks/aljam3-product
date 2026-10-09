@@ -1,6 +1,6 @@
 # GitHub authority and setup
 
-`aljam3-product` is private by default, matching its role as the product research/coordination space. The two application repositories remain public. Store only appropriate, redacted evidence; a private repository is not a place to store credentials. Public app PRs should describe the behavior and validation clearly even when their proposal link is private.
+`aljam3-product` and both application repositories are public. The owner chose public visibility so GitHub can enforce branch protection on the current plan. Research issues, sketches and evidence are public too; store only appropriate, redacted or permissioned material. Keep credentials and personal user data out of repositories, issues and artifacts.
 
 ## Identities
 
@@ -9,14 +9,14 @@
 | Human owner, `AliOsm` / ID `7662492` | Approve proposal revisions, sensitive deliveries, policy changes, recovery and activation | Human GitHub session |
 | Dedicated worker account | Read apps; create branches/PRs/issues/evidence; request trusted delivery workflow | Unattended T3 runtime only |
 | Dedicated delivery GitHub App | Validate and set its own required status; merge exact approved heads; dispatch releases; record completion | Product `aljam3-delivery` environment only |
-| Read-only product token | Read private policy, issue evidence, app PR/check/action state | App `aljam3-read-policy` environments only |
+| Read-only product token | Read policy, issue evidence, app PR/check/action state | App `aljam3-read-policy` environments only |
 | Production keys | Deploy web or sign desktop updates | App `aljam3-production` environments only |
 
 The current setup session is authenticated as the human owner. It must not become the unattended worker account. Create a separate GitHub worker identity with a fine-grained token limited to these three repositories: contents/PRs/issues read-write and actions read-write as needed to request the trusted workflow. Give it no organization administration, environment administration, secret administration, branch bypass or production access. Prefer no workflow-writing permission; sensitive workflow changes then remain owner-managed work.
 
 Create a GitHub App installed only on these three repositories, with contents, pull requests, issues, commit statuses and actions read/write, checks read, and metadata read. It needs no administration permission and no branch-protection bypass. Record its numeric App ID and bot login in `policy.json`. Put `ALJAM3_GATE_APP_ID` as an environment variable and `ALJAM3_GATE_APP_PRIVATE_KEY` as an environment secret on the product repository's `aljam3-delivery` environment. The worker never gets that key. The required `Aljam3 / delivery` status must be bound to this App ID, so an arbitrary green GitHub Actions job cannot impersonate it.
 
-Create a read-only fine-grained token for policy access: contents/issues read on the private product repo and PRs/checks/actions/contents read on the two apps. Store it as `ALJAM3_PRODUCT_READ_TOKEN` in each app's `aljam3-read-policy` environment. It cannot write approval or delivery records. Secret values belong in GitHub/T3 private input, not chat or repository files.
+Create a read-only fine-grained token for policy access: contents/issues read on the product repo and PRs/checks/actions/contents read on the two apps. Store it as `ALJAM3_PRODUCT_READ_TOKEN` in each app's `aljam3-read-policy` environment. The current release workflows still use this token for authenticated cross-repository reads even though the repositories are public. It cannot write approval or delivery records. Secret values belong in GitHub/T3 private input, not chat or repository files.
 
 Run unattended T3 under an OS account/container that cannot read the owner's gh credentials or deployment keys. Merely changing `GH_CONFIG_DIR` in a full-access session on the owner's account is not a security boundary. Do not expose a host Docker socket or host home directory to an allegedly isolated worker; use appropriately scoped local development services. The existing always-on server can be migrated/configured at the pilot handoff, with the owner's interactive access. Codex subscription authentication can remain the chosen provider; this setup does not add an API key dependency.
 
