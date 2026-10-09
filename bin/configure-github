@@ -1,0 +1,57 @@
+#!/usr/bin/env python3
+"""Owner-only, idempotent bootstrap settings; never starts agents or releases."""
+
+import argparse
+import json
+from pathlib import Path
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from automation.github import GitHub
+from automation.policy import require
+
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument("--phase", choices=["bootstrap", "delivery"], default="bootstrap")
+args = parser.parse_args()
+policy = json.loads((Path(__file__).resolve().parents[1] / "policy.json").read_text())
+api = GitHub()
+require(api.request("user")["id"] == policy["owner"]["id"], "Only the human owner configures authority")
+if args.phase == "delivery":
+    require(policy["gate"]["app_id"] and policy["worker"]["id"] != policy["owner"]["id"] and policy["worker"]["id"],
+            "Configure distinct identities before installing the delivery gate")
+
+labels = {"proposal": "1D76DB", **{f"size:{x}": "5319E7" for x in policy["limits"]["size"]},
+          **{f"kind:{x}": "0E8A16" for x in policy["limits"]["kind"]},
+          **{f"state:{x}": "FBCA04" for x in ("proposed", "implementing", "qa", "changes", "acceptance", "awaiting-release", "blocked", "released", "rejected")}}
+existing = {label["name"] for label in api.pages(f"repos/{policy['product_repo']}/labels")}
+for name, color in labels.items():
+    if name not in existing:
+        api.request(f"repos/{policy['product_repo']}/labels", "POST", {"name": name, "color": color})
+
+repos = [policy["product_repo"], *policy["repositories"]]
+for repo in repos:
+    is_product = repo == policy["product_repo"]
+    checks = [{"context": "test" if is_product else "Aljam3 / CI", "app_id": 15368}]
+    if not is_product and args.phase == "delivery":
+        checks.append({"context": policy["delivery_context"], "app_id": policy["gate"]["app_id"]})
+    protection = {
+        "required_status_checks": {"strict": True, "checks": checks},
+        "enforce_admins": True, "restrictions": None,
+        "required_pull_request_reviews": ({"dismiss_stale_reviews": True, "require_code_owner_reviews": True,
+                                           "required_approving_review_count": 0} if args.phase == "delivery" else None),
+        "allow_force_pushes": False, "allow_deletions": False,
+        "required_conversation_resolution": True
+    }
+    api.request(f"repos/{repo}/branches/main/protection", "PUT", protection)
+    api.request(f"repos/{repo}/actions/permissions/workflow", "PUT", {"default_workflow_permissions": "read", "can_approve_pull_request_reviews": False})
+    environments = ["aljam3-delivery"] if is_product else ["aljam3-read-policy", "aljam3-production"]
+    if repo.endswith("desktop"):
+        environments.append("aljam3-build")
+    for environment in environments:
+        path = f"repos/{repo}/environments/{environment}"
+        api.request(path, "PUT", {"deployment_branch_policy": {"protected_branches": False, "custom_branch_policies": True}})
+        policies = api.request(path + "/deployment-branch-policies")["branch_policies"]
+        require(all(p["name"] == "main" and p["type"] == "branch" for p in policies), "Unexpected environment branch policy; inspect before changing it")
+        if not policies:
+            api.request(path + "/deployment-branch-policies", "POST", {"name": "main", "type": "branch"})
+    print(f"Configured {repo}: {args.phase}; no secrets or runtime activation changed")

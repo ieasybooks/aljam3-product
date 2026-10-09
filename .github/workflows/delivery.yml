@@ -1,0 +1,48 @@
+name: Delivery
+run-name: Aljam3 ${{ inputs.operation }} issue ${{ inputs.issue }}
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        type: choice
+        options: [check, merge, release, finish]
+        default: check
+        required: true
+      issue:
+        description: Approved product issue number
+        required: true
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: aljam3-delivery
+  cancel-in-progress: false
+jobs:
+  delivery:
+    if: github.ref == 'refs/heads/main'
+    environment: aljam3-delivery
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/create-github-app-token@v2
+        id: gate
+        with:
+          app-id: ${{ vars.ALJAM3_GATE_APP_ID }}
+          private-key: ${{ secrets.ALJAM3_GATE_APP_PRIVATE_KEY }}
+          owner: ieasybooks
+          repositories: |
+            aljam3-product
+            aljam3-web-app
+            aljam3-desktop
+      - name: Validate and perform the requested transition
+        env:
+          GH_TOKEN: ${{ steps.gate.outputs.token }}
+          OPERATION: ${{ inputs.operation }}
+          ISSUE: ${{ inputs.issue }}
+        run: |
+          case "$OPERATION" in check) OPERATION=gate ;; merge|release|finish) ;; *) exit 1 ;; esac
+          python3 bin/productctl "$OPERATION" --issue "$ISSUE"

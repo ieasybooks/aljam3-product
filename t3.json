@@ -1,0 +1,9 @@
+{
+  "$schema": "https://t3.codes/schema/t3.json",
+  "defaultThreadEnvMode": "local",
+  "scripts": [
+    {"name": "Check product policy", "command": "python3 -m unittest discover -s tests -v", "icon": "test"},
+    {"name": "Inspect automation state", "command": "python3 bin/productctl status", "icon": "configure"},
+    {"name": "Inspect proposal capacity", "command": "python3 bin/productctl capacity", "icon": "configure"}
+  ]
+}

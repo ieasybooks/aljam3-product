@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "mode": "off",
+  "pilot_issue": null,
+  "product_repo": "ieasybooks/aljam3-product",
+  "owner": {"login": "AliOsm", "id": 7662492},
+  "worker": {"login": null, "id": null},
+  "gate": {"login": null, "app_id": null},
+  "limits": {
+    "size": {"large": 2, "medium": 3, "small": 5},
+    "kind": {"bug": 2, "enhancement": 2, "feature": 6},
+    "active_implementations": 1,
+    "repair_rounds": 3
+  },
+  "repositories": {
+    "ieasybooks/aljam3-web-app": {
+      "branch": "main",
+      "checks": ["Aljam3 / CI"],
+      "release_workflow": "kamal-run.yml"
+    },
+    "ieasybooks/aljam3-desktop": {
+      "branch": "main",
+      "checks": ["Aljam3 / CI"],
+      "release_workflow": "packages.yml"
+    }
+  },
+  "human_delivery_paths": [
+    "AGENTS.md", ".github/*", "t3.json", "bin/agent-*", "bin/release-*",
+    "config/deploy*", ".kamal/*", "db/migrate/*", "db/*_migrate/*",
+    "Gemfile*", "package.json", "yarn.lock", "mise.toml",
+    "app/models/user.rb", "app/controllers/users/*", "config/initializers/devise.rb",
+    "config/initializers/cloudflare_turnstile.rb", "lib/aljam3/update*",
+    "bin/publish-release", "bin/sign-release", "bin/build-*", "packaging/*"
+  ],
+  "delivery_context": "Aljam3 / delivery"
+}

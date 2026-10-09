@@ -1,0 +1,21 @@
+{
+  "type": "review",
+  "role": "qa",
+  "task_id": "actual-t3-task-id",
+  "bundle": "replace-with-current-snapshot-bundle",
+  "verdict": "pass",
+  "summary": "Explain what was verified, findings resolved, and remaining limits.",
+  "evidence": ["https://github.com/ieasybooks/aljam3-web-app/actions/runs/ACTUAL_RUN"],
+  "unresolved": [],
+  "areas": {
+    "correctness": "Acceptance criteria, negative paths, realistic data and actual results.",
+    "security": "Inputs, authorization, secrets and dependency impact.",
+    "performance": "Measured impact or a justified N/A.",
+    "accessibility": "Keyboard, focus, semantics, contrast and reduced motion.",
+    "localization": "Arabic/RTL, bidi, Urdu/English and text expansion.",
+    "data_integrity": "Quotes, citations, library, reading state, migration/update safety.",
+    "regression": "Adjacent workflows and failure recovery.",
+    "compatibility": "API/installed clients, macOS/Windows and offline behavior.",
+    "experience": "Screenshots/sketch comparison and usability observations."
+  }
+}
